@@ -1,0 +1,12 @@
+[project]
+name = "panta-picto-filter"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "datasets>=4.8.5",
+    "matplotlib>=3.10.9",
+    "pandas>=2.3.3",
+    "vllm>=0.19.0",
+]
