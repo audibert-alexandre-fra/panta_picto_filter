@@ -3,17 +3,19 @@ import re
 from typing import Any
 
 
-def parse_llm_output(text: str) -> dict[str, int]:
+def parse_llm_output(text: str) -> dict[str, Any]:
     """Parse LLM output for binary validation (valide 0/1).
 
     Attempts direct JSON parsing, then falls back to regex extraction
-    of the first JSON object found in the text.
+    of the first JSON object found in the text. The optional ``reasoning``
+    field produced by the model is preserved when present.
 
     Args:
         text: Raw LLM output string.
 
     Returns:
-        A dict with key ``"valide"`` set to 0 or 1.
+        A dict with key ``"valide"`` set to 0 or 1, plus ``"reasoning"``
+        when the model provided it.
     """
     try:
         data = json.loads(text)
@@ -34,7 +36,11 @@ def parse_llm_output(text: str) -> dict[str, int]:
     except Exception:
         valide = 0
 
-    return {"valide": valide}
+    result: dict[str, Any] = {"valide": valide}
+    reasoning = data.get("reasoning")
+    if reasoning is not None:
+        result["reasoning"] = str(reasoning)
+    return result
 
 
 def parse_llm_classification(text: str) -> dict[str, int]:

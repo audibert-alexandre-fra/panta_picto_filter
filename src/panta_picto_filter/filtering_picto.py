@@ -23,8 +23,9 @@ def filter_picto(dataset_path: str, nb_element: int | None = None, eval_mode: bo
         dataset_path: Path to the input ``.parquet`` file.
         nb_element: Optional cap on the number of elements to process.
         eval_mode: If True, only process the first ``LOG_EVAL_NB`` elements
-            and write the logs (input, raw output, parsed result) to a
-            ``.log`` file to evaluate different prompts.
+            and write the logs (phrase source, lemmes, raisonnement, verdict,
+            raw output, parsed result) to a ``.log`` file to evaluate
+            different prompts.
     """
     name_dataset = dataset_path if dataset_path.endswith(".parquet") else f"{dataset_path}.parquet"
     data: list[dict] = list(Dataset.from_parquet(name_dataset))
@@ -55,12 +56,16 @@ def filter_picto(dataset_path: str, nb_element: int | None = None, eval_mode: bo
             single_input["filter_picto_text"] = parsed.get("valide", 0)
             results.append(single_input)
             if eval_mode:
+                verdict = "valide (1)" if parsed.get("valide", 0) == 1 else "rejeté (0)"
                 log_lines.append(
                     "\n".join(
                         [
                             f"=== Exemple {len(results)} ===",
                             f"Phrase source : {single_input['text']}",
-                            f"Tokens : {single_input['tokens']}",
+                            f"Lemmes : {single_input.get('tokens', 'N/A')}",
+                            f"Pictos : {single_input.get('pictos', 'N/A')}",
+                            f"Raisonnement : {parsed.get('reasoning', 'N/A')}",
+                            f"Verdict : {verdict}",
                             f"Sortie brute : {output}",
                             f"Parsé : {parsed}",
                         ]
