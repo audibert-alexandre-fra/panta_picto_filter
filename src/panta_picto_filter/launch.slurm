@@ -23,11 +23,9 @@ export HF_DATASETS_OFFLINE=1
 export TIKTOKEN_ENCODINGS_BASE=$HOME/tiktoken_encodings
 export XDG_CACHE_HOME=$HOME/.cache
 
+cd ..
 source ../../.venv/bin/activate
+echo "CPATH=$CPATH"
 
-export HF_HUB_OFFLINE=1
-export TRANSFORMERS_OFFLINE=1
-export HF_HOME=$HOME/.cache/huggingface
-
-python3 filtering_picto.py cosmo_annotated_chunk_0.parquet
+srun python3 filtering_picto.py cosmo_annotated_chunk_0.parquet
 
