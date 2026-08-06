@@ -23,7 +23,6 @@ export HF_DATASETS_OFFLINE=1
 export TIKTOKEN_ENCODINGS_BASE=$HOME/tiktoken_encodings
 export XDG_CACHE_HOME=$HOME/.cache
 
-cd ..
 source ../../.venv/bin/activate
 echo "CPATH=$CPATH"
 
