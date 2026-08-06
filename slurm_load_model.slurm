@@ -11,4 +11,4 @@
 source .venv/bin/activate
 
 # --- Exécution du chargement du modèle (cache) ---
-python3 load_model.py --model "Qwen/Qwen3-14B"
+python3 load_model.py --model "Qwen/Qwen3-32B"

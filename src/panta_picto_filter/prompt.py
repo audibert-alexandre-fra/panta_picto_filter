@@ -236,6 +236,10 @@ CE QUI EST TOUJOURS ACCEPTABLE et ne justifie jamais un rejet :
 - Nuances, qualificatifs, détails stylistiques absents
 - Entités nommées remplacées par une description générique
   ("Violette" → "person", "Bayard" → "person", "Catiche" → "woman")
+- Un concept religieux, culturel ou national représenté par un token
+  symbolique ("juif" → "Star_of_David", "musulman" → "Islam",
+  "chrétien" → "cross"...) — ce n'est jamais une contradiction ni un
+  hors-sujet, même si le token semble inattendu au premier regard
 - Approximations sémantiques proches ("cendre" → "fire", "bras" → "arms")
 - Temps verbaux ou structures grammaticales simplifiés
 - Répétitions de tokens — JAMAIS un motif de rejet
@@ -249,15 +253,23 @@ Critères de rejet (valide: 0) — uniquement si CLAIREMENT et MASSIVEMENT véri
    Exemple franc : phrase = joie → token = "sad"
 
 2. HORS-SUJET — les tokens décrivent une scène radicalement différente,
-   sans aucun lien avec la phrase source.
+   sans aucun lien avec la phrase source. Un token symbolique cohérent
+   avec un concept de la phrase (culture, religion, nationalité) n'est
+   JAMAIS hors-sujet.
    Exemple franc : phrase = boulanger interpelle un gamin → tokens = "garden flower basket"
 
-3. INCOMPLET — plus de la moitié du sens global de la phrase est absent.
-   Ce critère ne s'applique QUE si une action ou un événement majeur central
-   est entièrement absent, pas un détail.
+3. INCOMPLET — un verbe ou événement PRINCIPAL de la phrase est
+   entièrement absent des tokens. Un détail, une précision ou une
+   nuance manquante ne compte pas comme incomplet.
    Exemple franc : phrase = "Il entra et trouva un trésor." → tokens = "man enter"
    NON : phrase = "elle se réveilla assez tard" → tokens = "she wake_up late" → VALIDE
    NON : structure syntaxique maladroite mais sens présent → VALIDE
+   NON : un qualificatif ou une entité secondaire absent → VALIDE
+
+Avant de trancher, pose-toi cette seule question : le verbe ou
+l'événement central de la phrase est-il présent, même approximativement,
+dans les tokens ? Si oui → valide (1). Ne rejette que si la réponse est
+clairement non.
 
 Voici des exemples de décisions attendues :
 
@@ -281,12 +293,17 @@ Phrase source : "celui-ci répondit qu'ils étaient excellents, surtout quand on
 Tokens : somebody answer better when we put cook under hot fire
 Réponse : {"reasoning": "Aucun problème.", "valide": 1}
 
-Exemple 5 — INCOMPLET clair (valide: 0)
+Exemple 5 — VALIDE symbole culturel/religieux (valide: 1)
+Phrase source : "Parmi les écrivains juifs bien connus figurent Isaac Bashevis Singer, Philip Roth et J.D. Salinger ."
+Tokens : between writer Star_of_David famous person person and person
+Réponse : {"reasoning": "Substitution symbolique acceptable.", "valide": 1}
+
+Exemple 6 — INCOMPLET clair (valide: 0)
 Phrase source : "Tout a coup il sembla a Maso que son chien se frottait contre lui, et qu'en meme temps quelqu'un tirait son chapeau ."
 Tokens : now person his dog rub against and time
 Réponse : {"reasoning": "Incomplet : action finale absente.", "valide": 0}
 
-Exemple 6 — HORS-SUJET clair (valide: 0)
+Exemple 7 — HORS-SUJET clair (valide: 0)
 Phrase source : "Le boulanger sortit de sa boutique et interpella le gamin."
 Tokens : woman garden flower pick basket
 Réponse : {"reasoning": "Hors-sujet : aucun lien.", "valide": 0}

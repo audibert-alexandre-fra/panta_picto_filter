@@ -36,7 +36,7 @@ def filter_picto(dataset_path: str, nb_element: int | None = None, eval_mode: bo
     if eval_mode:
         data = data[:LOG_EVAL_NB]
 
-    model = LlmAsJudge(name_model="Qwen/Qwen3-14B", task="filter_text_picto")
+    model = LlmAsJudge(name_model="Qwen/Qwen3-32B", task="filter_text_picto")
 
     nb_element = len(data)
     results: list[dict] = []

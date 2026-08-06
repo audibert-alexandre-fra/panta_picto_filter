@@ -8,8 +8,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model",
         type=str,
-        default="Qwen/Qwen3-14B",
-        help="HuggingFace model identifier (default: Qwen/Qwen3-14B)",
+        default="Qwen/Qwen3-32B",
+        help="HuggingFace model identifier (default: Qwen/Qwen3-32B)",
     )
     parser.add_argument(
         "--device",
