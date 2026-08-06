@@ -26,5 +26,7 @@ export XDG_CACHE_HOME=$HOME/.cache
 source ../../.venv/bin/activate
 echo "CPATH=$CPATH"
 
+export VLLM_USE_TRITON_SAMPLER=0
+
 srun python3 filtering_picto.py cosmo_annotated_chunk_0.parquet
 
