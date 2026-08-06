@@ -10,9 +10,10 @@ from process_output import parse_llm_output
 
 
 BATCH_SIZE: int = 64
+LOG_EVAL_NB: int = 128
 
 
-def filter_picto(dataset_path: str, nb_element: int | None = None) -> None:
+def filter_picto(dataset_path: str, nb_element: int | None = None, eval_mode: bool = False) -> None:
     """Run picto-text filtering on a parquet dataset.
 
     Loads a parquet file, processes it in batches through the LLM judge
@@ -21,6 +22,9 @@ def filter_picto(dataset_path: str, nb_element: int | None = None) -> None:
     Args:
         dataset_path: Path to the input ``.parquet`` file.
         nb_element: Optional cap on the number of elements to process.
+        eval_mode: If True, only process the first ``LOG_EVAL_NB`` elements
+            and write the logs (input, raw output, parsed result) to a
+            ``.log`` file to evaluate different prompts.
     """
     name_dataset = dataset_path if dataset_path.endswith(".parquet") else f"{dataset_path}.parquet"
     data: list[dict] = list(Dataset.from_parquet(name_dataset))
@@ -28,10 +32,14 @@ def filter_picto(dataset_path: str, nb_element: int | None = None) -> None:
     if nb_element is not None:
         data = data[:nb_element]
 
+    if eval_mode:
+        data = data[:LOG_EVAL_NB]
+
     model = LlmAsJudge(name_model="Qwen/Qwen3-14B", task="filter_text_picto")
 
     nb_element = len(data)
     results: list[dict] = []
+    log_lines: list[str] = []
     starting_time = time()
 
     for i in range(0, nb_element, BATCH_SIZE):
@@ -46,11 +54,29 @@ def filter_picto(dataset_path: str, nb_element: int | None = None) -> None:
             parsed = parse_llm_output(output)
             single_input["filter_picto_text"] = parsed.get("valide", 0)
             results.append(single_input)
+            if eval_mode:
+                log_lines.append(
+                    "\n".join(
+                        [
+                            f"=== Exemple {len(results)} ===",
+                            f"Phrase source : {single_input['text']}",
+                            f"Tokens : {single_input['tokens']}",
+                            f"Sortie brute : {output}",
+                            f"Parsé : {parsed}",
+                        ]
+                    )
+                )
 
     nb_filtered = sum(r.get("filter_picto_text", 0) for r in results)
 
     name_dataset_save = os.path.splitext(os.path.basename(name_dataset))[0] + "_filtering_text_picto.json"
     save_json(path=name_dataset_save, data=results)
+
+    if eval_mode:
+        name_log = os.path.splitext(os.path.basename(name_dataset))[0] + "_eval.log"
+        with open(name_log, "w", encoding="utf-8") as f:
+            f.write("\n\n".join(log_lines) + "\n")
+        print(f"[eval mode] {nb_element} exemples loggés dans {name_log}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -61,9 +87,14 @@ def parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description="Process dataset with config file")
     parser.add_argument("name_dataset", type=str)
+    parser.add_argument(
+        "--eval",
+        action="store_true",
+        help="Mode évaluation : traite uniquement les 128 premiers exemples et écrit les logs dans un fichier .log",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    filter_picto(dataset_path=args.name_dataset)
+    filter_picto(dataset_path=args.name_dataset, eval_mode=args.eval)
