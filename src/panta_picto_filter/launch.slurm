@@ -16,5 +16,9 @@ module load arch/h100
 
 source ../../.venv/bin/activate
 
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export HF_HOME=$HOME/.cache/huggingface
+
 python3 filtering_picto.py cosmo_annotated_chunk_0.parquet
 
