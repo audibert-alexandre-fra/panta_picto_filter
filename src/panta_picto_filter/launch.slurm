@@ -13,6 +13,15 @@
 
 module purge
 module load arch/h100
+module load cuda/12.8.0
+module load python/3.11.5
+
+export CPATH=/gpfslocalsup/pub/anaconda-py3/2023.09/envs/python-3.11.5/include/python3.11:$CPATH
+export HF_HOME=/lustre/fswork/projects/rech/oou/uid39ok/.cache/huggingface
+export TRANSFORMERS_OFFLINE=1
+export HF_DATASETS_OFFLINE=1
+export TIKTOKEN_ENCODINGS_BASE=$HOME/tiktoken_encodings
+export XDG_CACHE_HOME=$HOME/.cache
 
 source ../../.venv/bin/activate
 
