@@ -8,7 +8,6 @@
 #SBATCH --error=%x_%j.err
 
 # --- Préparation de l'environnement ---
-cd ..
 source .venv/bin/activate
 
 # --- Exécution du chargement du modèle (cache) ---
