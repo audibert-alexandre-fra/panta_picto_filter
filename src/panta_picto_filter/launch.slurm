@@ -16,17 +16,30 @@ module load arch/h100
 module load cuda/12.8.0
 module load python/3.11.5
 
-export CPATH=/gpfslocalsup/pub/anaconda-py3/2023.09/envs/python-3.11.5/include/python3.11:$CPATH
+source ../../.venv/bin/activate
+
+# --- Fix Python.h introuvable lors de la compilation JIT Triton ---
+# On calcule le chemin d'include correspondant AU python réellement actif
+# dans le venv, au lieu de pointer en dur vers un env anaconda qui ne
+# correspond pas forcément à l'interpréteur utilisé.
+PYTHON_INCLUDE_DIR=$(python3 -c "import sysconfig; print(sysconfig.get_paths()['include'])")
+echo "PYTHON_INCLUDE_DIR=$PYTHON_INCLUDE_DIR"
+ls "$PYTHON_INCLUDE_DIR" | grep -i Python.h || echo "ATTENTION: Python.h absent de $PYTHON_INCLUDE_DIR"
+
+export CPATH=$PYTHON_INCLUDE_DIR:$CPATH
 export HF_HOME=/lustre/fswork/projects/rech/oou/uid39ok/.cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export HF_DATASETS_OFFLINE=1
 export TIKTOKEN_ENCODINGS_BASE=$HOME/tiktoken_encodings
 export XDG_CACHE_HOME=$HOME/.cache
 
-source ../../.venv/bin/activate
 echo "CPATH=$CPATH"
 
 export VLLM_USE_TRITON_SAMPLER=0
+
+# Si Python.h reste introuvable malgré tout, décommenter cette ligne pour
+# forcer vLLM à éviter la compilation JIT Triton (perte de perf, mais ça tourne) :
+# export VLLM_ENFORCE_EAGER=1
 
 # S'assurer que la libcuda du driver et la libcudart du toolkit sont visibles
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
@@ -39,4 +52,3 @@ nvidia-smi || exit 1
 python3 -c "import torch; print('torch.cuda.is_available =', torch.cuda.is_available()); print('n_gpus =', torch.cuda.device_count())"
 
 srun --gres=gpu:1 python3 filtering_picto.py cosmo_annotated_chunk_0.parquet --eval
-
