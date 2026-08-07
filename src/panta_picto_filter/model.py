@@ -26,11 +26,17 @@ class LlmAsJudge:
         top_p: float = 1,
         top_k: float = -1,
         max_tokens: int = 100,
+        max_model_len: int = 4096,
+        gpu_memory_utilization: float = 0.9,
         task: str = "filter_text",
     ) -> None:
         self.model_name: str = name_model
         self.tokenizer = AutoTokenizer.from_pretrained(name_model)
-        self.llm = LLM(model=name_model)
+        self.llm = LLM(
+            model=name_model,
+            max_model_len=max_model_len,
+            gpu_memory_utilization=gpu_memory_utilization,
+        )
         self.sampling_params = SamplingParams(
             temperature=temperature,
             top_p=top_p,
