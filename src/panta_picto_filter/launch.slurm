@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --hint=nomultithread
-#SBATCH --time=00:10:00
+#SBATCH --time=20:00:00
 #SBATCH --output=./logs_slurm/cosmo_annotated_chunk_0_eval.out
 #SBATCH --error=./logs_slurm/cosmo_annotated_chunk_0_eval.err
 #SBATCH --account=oou@h100
