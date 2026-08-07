@@ -51,4 +51,4 @@ export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
 nvidia-smi || exit 1
 python3 -c "import torch; print('torch.cuda.is_available =', torch.cuda.is_available()); print('n_gpus =', torch.cuda.device_count())"
 
-srun --gres=gpu:1 python3 filtering_picto.py cosmo_annotated_chunk_0.parquet --eval
+srun --gres=gpu:1 python3 filtering_picto.py cosmo_annotated_chunk_0.parquet 
