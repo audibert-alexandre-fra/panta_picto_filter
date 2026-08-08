@@ -10,4 +10,4 @@
 # --- Préparation de l'environnement ---
 source ../../.venv/bin/activate
 
-python3 last_filtering.py --name cosmopicto_filtering_text_picto.json --save cosmopicto_final
+python3 last_filtering.py --name cosmo_annotated_chunk_0_filtering_text_picto.json --save cosmopicto_final
