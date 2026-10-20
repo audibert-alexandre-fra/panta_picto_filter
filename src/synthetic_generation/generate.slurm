@@ -16,6 +16,7 @@
 #   sbatch generate.slurm                       # corpus complet (45 000 prompts)
 #   sbatch generate.slurm --nb_prompts 1000 --output ../../outputs/synthetic_proto.json
 # Relancer la même commande après un crash reprend au dernier chunk terminé.
+# Enchaîne pre_clean.py puis dedup.py (seuil 0.9) : <output>_clean.json, <output>_clean_dedup.json.
 
 module purge
 module load arch/h100
@@ -37,4 +38,22 @@ export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
 
 nvidia-smi || exit 1
 
-srun --gres=gpu:1 python3 generate.py "$@"
+srun --gres=gpu:1 python3 generate.py "$@" || exit 1
+
+# Nettoyage + déduplication sémantique de la sortie (comme clean.sh), avec un seuil
+# plus strict que pour les corpus réels : les phrases générées sont plus proches entre elles.
+DEDUP_THRESHOLD=0.9
+OUTPUT=../../outputs/synthetic-fr_sentences.json
+args=("$@")
+for i in "${!args[@]}"; do
+    case "${args[$i]}" in
+        --output) OUTPUT="${args[$((i + 1))]}" ;;
+        --output=*) OUTPUT="${args[$i]#--output=}" ;;
+    esac
+done
+OUTPUT=$(realpath "$OUTPUT")
+
+# pre_clean.py et dedup.py utilisent des imports non qualifiés
+cd ../panta_picto_filter
+python3 pre_clean.py "$OUTPUT" || exit 1
+srun --gres=gpu:1 python3 dedup.py "${OUTPUT%.json}_clean.json" --threshold "$DEDUP_THRESHOLD"
