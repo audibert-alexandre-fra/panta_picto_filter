@@ -6,8 +6,9 @@ IMPORTANT :
 - Réponds uniquement avec un JSON valide
 - Aucune explication, aucun texte supplémentaire
 
-Critère unique — valide :
-- 1 si c'est une phrase française complète, grammaticalement correcte, naturelle, sans caractères spéciaux excessifs
+Critère — valide :
+- 1 si c'est une phrase française complète, grammaticalement correcte, naturelle, sans caractères spéciaux excessifs,
+  dont toutes les entités nommées peuvent être représentées par des pictogrammes
 - 0 sinon
 
 Règles :
@@ -15,14 +16,65 @@ Règles :
 - Doit être grammaticalement correcte en français
 - Ne doit pas contenir de formules mathématiques, équations, codes
 - Ne doit pas contenir d'excès de chiffres ou caractères spéciaux (%, =, #, @, emojis…)
+  (une date, une année ou une quantité simple est acceptée : "en 1913", "10 212 habitants")
 - Ne doit pas être une métadonnée, mention légale, dédicace, titre ou référence bibliographique
 - Ne doit pas être un en-tête, numéro de chapitre, date isolée ou adresse
+- Ne doit pas parler de la page ou de l'article lui-même ("Cette page concerne…",
+  "Cet article présente…") ni être une phrase de calendrier ("L'année 1282 est une année
+  commune…", "Le mardi 13 janvier 1981 est le 13e jour de l'année")
 - Les phrases courtes naturelles sont acceptées ("C'est vrai ?")
+- Une phrase qui mentionne un article, un livre ou une page lus par quelqu'un reste
+  valide ("J'ai beaucoup aimé cet article.") : seule la phrase qui décrit le document
+  où elle se trouve est rejetée
+- Une phrase abstraite, technique ou explicative mais correcte reste valide
+  ("Ce système garantit que de nouvelles roches sont constamment créées.") :
+  la difficulté du sujet n'est pas un critère de rejet
+- Ne doit pas commencer par un titre ou une étiquette collée à la phrase
+  ("Mythes: Des histoires…", "Le monde des volcans Avez-vous déjà vu…")
 - La ponctuation normale est acceptée
 - Les phrases en minuscules sans majuscule initiale sont acceptées
 - Ne doit pas contenir de guillemets ouverts non refermés ou de discours direct tronqué
-- Ne doit pas commencer par une attribution suivie d'une citation incomplète 
+- Ne doit pas commencer par une attribution suivie d'une citation incomplète
   (ex: "X lui a dit: \"...")
+- Ne doit pas contenir d'entité nommée impossible à représenter par des pictogrammes
+- Ne doit pas être une phrase dont le sujet est un pronom (il, elle, son, sa, ce…)
+  renvoyant à un objet inconnu ET dont la seule information est une date, un chiffre,
+  un sigle ou une entité obscure ("Il est paru en 1986.", "Elle date d'entre 1420 et
+  1422.", "Il est administré par l'ADSIB.")
+  Un pronom suivi d'une action ou d'une description compréhensible reste valide
+  ("elle se réveilla assez tard", "Ses fruits sont comestibles.")
+
+Entités nommées et pictogrammes :
+La phrase sera ensuite traduite en pictogrammes (CAA). Chaque entité nommée doit
+pouvoir être représentée par un pictogramme sans que la phrase perde son sens.
+- ACCEPTÉ : entité connue ayant un symbole visuel évident
+  (Paris → tour Eiffel, France → drapeau, Noël → sapin, la Lune, l'Afrique, Mickey)
+- ACCEPTÉ : prénom ou nom d'une personne ordinaire (pas célèbre), remplaçable
+  par "il" ou "elle" (Alexandre → il, Lou → elle, Mme Dupont → elle, Tom → il,
+  Marie → elle). Un prénom seul n'est jamais une raison de rejeter la phrase
+- REJETÉ : personne célèbre ou historique dont l'identité est l'information
+  essentielle, car "il" ou "elle" ferait perdre le sens
+  (Victor Hugo, Napoléon, Marie Curie, Emmanuel Macron)
+  Exception : personnage ayant un pictogramme évident (Père Noël, Mickey)
+- ACCEPTÉ : lieu ordinaire remplaçable par une catégorie générique sans perte de sens
+  ("Il habite à Houlgate" → "ville")
+- ACCEPTÉ : entité peu connue (bâtiment, commune, rivière, club, plat, instrument…)
+  qui peut être remplacée par sa catégorie générique ("église", "village", "rivière",
+  "équipe", "instrument") tout en gardant l'idée principale de la phrase
+- REJETÉ : entité spécialisée, technique ou obscure dont le nom est l'information
+  essentielle et qu'aucun pictogramme ne peut évoquer : objets astronomiques,
+  noms scientifiques, sigles et organisations peu connues, molécules, logiciels,
+  lois et traités, titres d'œuvres, coureurs et équipes dans un palmarès sportif,
+  classements de ventes et dates de diffusion, divisions administratives
+  étrangères (județ, gmina, woreda, wilaya, township)
+  (ceinture de Kuiper, Escherichia coli, OCDE, traité de Westphalie)
+- REJETÉ : phrase dont tout le contenu est l'identité d'entités peu connues.
+  Si, après remplacement des entités par leur catégorie, la phrase devient
+  tautologique ou vide ("un village est un village d'une région d'un pays"), → 0
+- REJETÉ : phrase contenant 3 entités nommées peu connues ou plus
+- En cas de doute, demande-toi : si on remplace les entités par des pictogrammes
+  génériques, l'idée principale de la phrase reste-t-elle compréhensible ? Si oui → 1,
+  si la phrase ne veut plus rien dire → 0
 
 Exemples :
 Phrase : "C'est vrai ?"
@@ -43,7 +95,91 @@ Phrase : "Il y a des heures ou la mer se retire si loin, si loin, qu'on ne la vo
 Phrase : "alors les gens du pays disent que la maree est basse ."
 {"valide": 1}
 
+Phrase : "Nous sommes allés à Paris pour voir la tour Eiffel."
+{"valide": 1}
+
+Phrase : "Jean a donné une pomme à sa sœur."
+{"valide": 1}
+
+Phrase : "Lou et Alexandre jouent dans le jardin."
+{"valide": 1}
+
+Phrase : "Que fait Tom en ce moment ?"
+{"valide": 1}
+
+Phrase : "Marie a eu trois filles avec lui."
+{"valide": 1}
+
+Phrase : "Je serai à Tokyo pour affaires la semaine prochaine."
+{"valide": 1}
+
+Phrase : "Traduisez mes phrases."
+{"valide": 1}
+
+Phrase : "J'ai beaucoup aimé cet article."
+{"valide": 1}
+
+Phrase : "Il s'est sacrifié pour la patrie."
+{"valide": 1}
+
+Phrase : "Ces lois visent à garantir que chaque membre de la famille soit traité équitablement."
+{"valide": 1}
+
+Phrase : "Le tible est un instrument de musique traditionnel catalan."
+{"valide": 1}
+
+Phrase : "La population s'élevait à 13 569 habitants en 2019."
+{"valide": 1}
+
+Phrase : "Ses fruits sont comestibles ."
+{"valide": 1}
+
+Phrase : "Les nettes rousses peuvent rester 20 secondes sous l'eau ."
+{"valide": 1}
+
+Phrase : "Il faut consulter un médecin devant tout symptôme inhabituel ."
+{"valide": 1}
+
+Phrase : "Bergasa est une commune de la communauté autonome de La Rioja, en Espagne ."
+{"valide": 0}
+
+Phrase : "Il est administré par l'ADSIB ."
+{"valide": 0}
+
+Phrase : "Elle a été remportée par l'Australien Robbie McEwen de la formation belge Predictor-Lotto ."
+{"valide": 0}
+
+Phrase : "Le Canard brun est une espèce d'oiseaux de la famille des Anatidae ."
+{"valide": 0}
+
+Phrase : "Victor Hugo a écrit de nombreux romans."
+{"valide": 0}
+
+Phrase : "Weissflog est un astéroïde de la ceinture principale."
+{"valide": 0}
+
+Phrase : "Cet article présente les faits marquants de l'année 1976 concernant le jeu vidéo."
+{"valide": 0}
+
+Phrase : "Le lundi 4 octobre 1937 est le 277e jour de l'année 1937."
+{"valide": 0}
+
+Phrase : "La ceinture de Kuiper s'étend au-delà de l'orbite de Neptune."
+{"valide": 0}
+
+Phrase : "Le traité de Westphalie a été signé en 1648."
+{"valide": 0}
+
+Phrase : "La bactérie Escherichia coli vit dans l'intestin."
+{"valide": 0}
+
 Phrase : "Le deuxième."
+{"valide": 0}
+
+Phrase : "Mythes: Des histoires expliquant l'origine du monde."
+{"valide": 0}
+
+Phrase : "Le monde fascinant de la cartographie Avez-vous déjà regardé une carte ?"
 {"valide": 0}
 
 Phrase : "xz - 5xyz = x + y"

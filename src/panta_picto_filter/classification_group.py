@@ -6,9 +6,14 @@ from process_output import parse_llm_classification
 
 
 BATCH_SIZE: int = 64
+DEFAULT_MODEL: str = "Qwen/Qwen3-32B"
 
 
-def classify_dataset(dataset_path: str, nb_element: int | None = None) -> None:
+def classify_dataset(
+    dataset_path: str,
+    nb_element: int | None = None,
+    name_model: str = DEFAULT_MODEL,
+) -> None:
     """Classify French sentences into 6 complexity classes.
 
     Loads a JSON dataset, processes it in batches through the LLM judge
@@ -17,6 +22,7 @@ def classify_dataset(dataset_path: str, nb_element: int | None = None) -> None:
     Args:
         dataset_path: Path to the input ``.json`` file.
         nb_element: Optional cap on the number of elements to process.
+        name_model: Hugging Face model used as judge.
     """
     name_dataset = dataset_path if dataset_path.endswith(".json") else f"{dataset_path}.json"
     data: list[dict] = read_json(name_dataset)
@@ -24,7 +30,7 @@ def classify_dataset(dataset_path: str, nb_element: int | None = None) -> None:
     if nb_element is not None:
         data = data[:nb_element]
 
-    model = LlmAsJudge(task="classification")
+    model = LlmAsJudge(name_model=name_model, task="classification")
 
     nb_element = len(data)
     results: list[dict] = []
@@ -49,13 +55,14 @@ def parse_args() -> argparse.Namespace:
     """Parse command-line arguments.
 
     Returns:
-        Parsed arguments with ``name_dataset``.
+        Parsed arguments with ``name_dataset`` and ``model``.
     """
     parser = argparse.ArgumentParser(description="Process dataset with config file")
     parser.add_argument("name_dataset", type=str)
+    parser.add_argument("--model", type=str, default=DEFAULT_MODEL)
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    classify_dataset(dataset_path=args.name_dataset)
+    classify_dataset(dataset_path=args.name_dataset, name_model=args.model)

@@ -1,5 +1,5 @@
 import json
-import os
+import math
 from pathlib import Path
 
 CHUNK_SIZE = 40_000
@@ -16,7 +16,7 @@ def main() -> None:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        print(f"{path.name}: {len(data)} elements, {len(data) // CHUNK_SIZE + 1} chunk(s)")
+        print(f"{path.name}: {len(data)} elements, {math.ceil(len(data) / CHUNK_SIZE)} chunk(s)")
 
         for i in range(0, len(data), CHUNK_SIZE):
             chunk = data[i : i + CHUNK_SIZE]

@@ -1,8 +1,5 @@
 import argparse
 import os
-from pathlib import Path
-from time import time
-
 from datasets import Dataset
 from utils import save_json
 from model import LlmAsJudge
@@ -41,7 +38,6 @@ def filter_picto(dataset_path: str, nb_element: int | None = None, eval_mode: bo
     nb_element = len(data)
     results: list[dict] = []
     log_lines: list[str] = []
-    starting_time = time()
 
     for i in range(0, nb_element, BATCH_SIZE):
         index_max = min(nb_element, i + BATCH_SIZE)
@@ -72,9 +68,12 @@ def filter_picto(dataset_path: str, nb_element: int | None = None, eval_mode: bo
                     )
                 )
 
-    nb_filtered = sum(r.get("filter_picto_text", 0) for r in results)
+    nb_valid = sum(r.get("filter_picto_text", 0) for r in results)
+    print(f"{nb_valid}/{nb_element} exemples valides")
 
-    name_dataset_save = os.path.splitext(os.path.basename(name_dataset))[0] + "_filtering_text_picto.json"
+    # Suffix eval runs so they never overwrite a full run's output.
+    suffix = "_eval" if eval_mode else ""
+    name_dataset_save = os.path.splitext(os.path.basename(name_dataset))[0] + f"_filtering_text_picto{suffix}.json"
     save_json(path=name_dataset_save, data=results)
 
     if eval_mode:

@@ -44,6 +44,7 @@ class LlmAsJudge:
             max_tokens=max_tokens,
         )
         self.task: str = task
+        self.max_prompt_tokens: int = max_model_len - max_tokens
 
     def text_process(self, text: str) -> str:
         """Apply the chat template for the configured task.
@@ -85,9 +86,19 @@ class LlmAsJudge:
         Args:
             texts: List of raw user messages to process.
 
+        Prompts longer than the context window are not sent to the model and
+        get an empty output, which ``process_output`` maps to its safe default
+        (``valide: 0`` / ``classe: 6``) instead of crashing the whole batch.
+
         Returns:
             List of generated output strings, one per input text.
         """
         processed_texts = [self.text_process(t) for t in texts]
-        outputs = self.llm.generate(processed_texts, self.sampling_params)
-        return [o.outputs[0].text for o in outputs]
+        fits = [
+            len(self.tokenizer(p, add_special_tokens=False).input_ids) <= self.max_prompt_tokens
+            for p in processed_texts
+        ]
+        kept = [p for p, ok in zip(processed_texts, fits) if ok]
+        outputs = self.llm.generate(kept, self.sampling_params) if kept else []
+        generated = iter(o.outputs[0].text for o in outputs)
+        return [next(generated) if ok else "" for ok in fits]

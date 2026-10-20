@@ -7,6 +7,7 @@ from panta_picto_filter.utils import save_json, read_json
 
 
 RATIO_TO_KEEP_CLASS_5: float = 0.22
+SEED: int = 42
 
 
 def processing_json_before_llm_annotation(json_path: str, new_dataset_name: str) -> None:
@@ -28,19 +29,20 @@ def processing_json_before_llm_annotation(json_path: str, new_dataset_name: str)
     if "filtered_class" not in json_path:
         raise ValueError(
             f"Can't process this dataset because filtered_class is not included "
-            f"in the name current name: {json_path}"
+            f"in the current name: {json_path}"
         )
-    os.makedirs("before_annotation", exist_ok=True)
+    os.makedirs(current_path / "before_annotation", exist_ok=True)
     path_to_save = current_path / "before_annotation" / new_dataset_name
     data = read_json(json_path)
 
+    rng = random.Random(SEED)
     final_dataset: list[dict] = []
     for single_data in data:
         classe = single_data["classe"]
         if classe < 5:
             final_dataset.append(single_data)
         elif classe == 5:
-            if random.random() < RATIO_TO_KEEP_CLASS_5:
+            if rng.random() < RATIO_TO_KEEP_CLASS_5:
                 final_dataset.append(single_data)
 
     save_json(path=str(path_to_save), data=final_dataset)

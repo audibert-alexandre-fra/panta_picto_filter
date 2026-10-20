@@ -51,6 +51,7 @@ def last_filtering(name: str, name_to_save: str) -> None:
     dataset = Dataset.from_list(filtering_results)
     if not name_to_save.endswith(".parquet"):
         name_to_save += ".parquet"
+    os.makedirs("final_parquet_dataset", exist_ok=True)
     dataset.to_parquet(os.path.join("final_parquet_dataset", name_to_save))
 
 
@@ -61,8 +62,8 @@ def parse_args() -> argparse.Namespace:
         Parsed arguments with ``name`` and ``save``.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", type=str, help="Name of parquet to Merge")
-    parser.add_argument("--save", type=str, help="Name of parquet to Merge")
+    parser.add_argument("--name", type=str, required=True, help="JSON output of filtering_picto.py")
+    parser.add_argument("--save", type=str, required=True, help="Name of the final parquet file")
     return parser.parse_args()
 
 
