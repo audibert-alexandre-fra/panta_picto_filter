@@ -46,29 +46,59 @@ INTENTIONS: list[str] = [
     "remercier ou s'excuser", "faire un projet", "se plaindre",
 ]
 
-# Targets the 1-5 complexity classes of PROMPT_CLASSIFICATION (panta_picto_filter/prompt.py).
+# Targets the 1-5 complexity classes of PROMPT_CLASSIFICATION (panta_picto_filter/prompt.py):
+# je/tu/nous are not coreference, common nouns ("la mer", "maman") are not named entities.
+# Classes 4 and 5 get an imposed {entite}: left free, the model reuses the same few
+# first names (Paul, Léa) and takes "la ferme" or "la mer" for named entities.
 STRUCTURES: dict[int, str] = {
-    1: "phrase simple (une seule proposition), sans pronom il/elle/le/la/ça renvoyant à "
-       "quelque chose, sans prénom ni nom de lieu",
-    2: "phrase avec deux propositions (subordonnée ou coordonnée), sans pronom renvoyant à "
-       "quelque chose, sans prénom ni nom de lieu",
+    1: "phrase simple (une seule proposition), sans pronom il/elle/le/la/ça qui renvoie à "
+       "quelque chose, sans prénom ni nom de ville ou de pays",
+    2: "phrase avec deux propositions (subordonnée ou coordonnée), sans pronom il/elle/le/la/ça "
+       "qui renvoie à quelque chose, sans prénom ni nom de ville ou de pays",
     3: "phrase contenant un pronom (il, elle, le, la, lui, en, y, ça…) qui renvoie à quelque "
-       "chose ou à quelqu'un, sans prénom ni nom de lieu",
-    4: "phrase contenant un prénom courant ou un lieu connu (Paris, la mer, la France…), "
-       "sans pronom renvoyant à quelque chose",
-    5: "phrase contenant un prénom courant et un pronom qui renvoie à une personne ou à une chose",
+       "chose ou à quelqu'un, sans prénom ni nom de ville ou de pays",
+    4: "phrase contenant « {entite} », sans pronom il/elle/le/la/ça qui renvoie à quelque chose",
+    5: "phrase contenant « {entite} » et un pronom (il, elle, lui, le, la, en, y…) qui renvoie "
+       "à cette personne ou à une chose de la phrase",
 }
+
+FIRST_NAMES: list[str] = [
+    "Adam", "Adèle", "Ahmed", "Aïcha", "Alice", "Amir", "Ana", "Anaïs", "Antoine", "Arthur",
+    "Awa", "Axel", "Baptiste", "Bastien", "Camille", "Céline", "Chloé", "Clara", "Clément",
+    "Damien", "David", "Diane", "Dylan", "Éden", "Élise", "Ella", "Emma", "Enzo", "Éric",
+    "Ethan", "Fatou", "Félix", "Florence", "Gabriel", "Gaspard", "Hélène", "Hugo", "Ibrahim",
+    "Inès", "Isabelle", "Jade", "Jeanne", "Jules", "Julie", "Juliette", "Karim", "Kenza",
+    "Laura", "Léon", "Lina", "Linda", "Lou", "Louise", "Luc", "Lucie", "Lyna", "Madeleine",
+    "Malik", "Manon", "Margaux", "Marius", "Martin", "Maya", "Mehdi", "Mila", "Moussa",
+    "Nadia", "Nathan", "Nina", "Noah", "Noé", "Nora", "Olivier", "Oscar", "Paulette",
+    "Philippe", "Rayan", "Rose", "Sacha", "Salomé", "Samuel", "Sarah", "Simon", "Sofia",
+    "Sophie", "Suzanne", "Théo", "Thomas", "Timothée", "Valentin", "Victor", "Yanis",
+    "Yasmine", "Yves", "Zoé", "grand-mère Odette", "papi Robert", "tata Nicole", "tonton Marc",
+]
+
+# Named places with an obvious pictogram, accepted by the validation PROMPT.
+NAMED_PLACES: list[str] = [
+    "Paris", "Lyon", "Marseille", "Lille", "Bordeaux", "Toulouse", "Nice", "Strasbourg",
+    "Nantes", "Londres", "Rome", "Madrid", "Bruxelles", "Genève", "New York", "la France",
+    "l'Espagne", "l'Italie", "l'Allemagne", "la Belgique", "le Maroc", "l'Afrique",
+    "la Bretagne", "la Corse", "les Alpes", "la Méditerranée", "la tour Eiffel",
+]
+# Share of class-4 entities that are places rather than first names.
+PLACE_SHARE: float = 0.3
+# Share of prompts with an imposed place: an always-imposed place clashed with the
+# theme ("la voiture" + "dans le salon" -> "Hugo, respire plus lentement dans la voiture").
+PLACE_PROMPT_SHARE: float = 0.5
 # Real corpora are dominated by class 5 (downsampled in processing_before_llm.py):
 # the synthetic set favours the simple classes.
 STRUCTURE_WEIGHTS: dict[int, float] = {1: 0.30, 2: 0.25, 3: 0.20, 4: 0.15, 5: 0.10}
 
-TENSE_WEIGHTS: dict[str, float] = {
-    "présent": 0.30, "passé composé": 0.15, "futur proche": 0.12, "futur simple": 0.08,
-    "imparfait": 0.08, "impératif": 0.15, "conditionnel": 0.12,
-}
+# Only the time of the action: imposing a precise tense ("imparfait", "futur simple")
+# produced forced sentences ("Serais-tu allé pêcher hier ?"). The model picks the
+# natural form (passé composé or imparfait, futur proche, imperative for an order...).
+TENSE_WEIGHTS: dict[str, float] = {"présent": 0.50, "passé": 0.25, "futur": 0.25}
 
-# Questions are central in CAA: as frequent as affirmative sentences (~34% of the
-# sentences once the imperative/question constraints of sample_sentence_spec apply).
+# Questions are central in CAA: as frequent as affirmative sentences (~39% of the
+# sentences with the "poser une question" intention, always interrogative).
 SENTENCE_TYPE_WEIGHTS: dict[str, float] = {
     "affirmative": 0.35, "interrogative": 0.35, "négative": 0.15, "exclamative": 0.15,
 }
@@ -82,6 +112,11 @@ class SentenceSpec:
     classe_cible: int
     temps: str
     type_phrase: str
+    entite: str | None = None
+
+    def structure(self) -> str:
+        """Structure constraint of the target class, with its imposed entity."""
+        return STRUCTURES[self.classe_cible].format(entite=self.entite)
 
 
 @dataclass
@@ -89,7 +124,7 @@ class PromptSpec:
     """Shared context of one prompt and the specs of its sentences."""
 
     theme: str
-    lieu: str
+    lieu: str | None
     locuteur: str
     sentences: list[SentenceSpec]
 
@@ -99,32 +134,35 @@ class PromptSpec:
         return {"theme": self.theme, "lieu": self.lieu, "locuteur": self.locuteur, **sentence}
 
 
-def weighted_choice(rng: random.Random, weights: dict[str, float], exclude: str | None = None) -> str:
-    """Draw a key of ``weights`` proportionally to its weight, ``exclude`` left out."""
-    keys = [key for key in weights if key != exclude]
-    return rng.choices(keys, [weights[key] for key in keys])[0]
+def weighted_choice(rng: random.Random, weights: dict[str, float]) -> str:
+    """Draw a key of ``weights`` proportionally to its weight."""
+    return rng.choices(list(weights), list(weights.values()))[0]
 
 
 def sample_sentence_spec(rng: random.Random, classes: list[int], weights: list[float]) -> SentenceSpec:
     """Sample one sentence spec, without contradictory constraints.
 
-    A question is always interrogative, and an imperative is never interrogative
-    ("poser une question ; phrase affirmative" would yield an unnatural sentence).
+    A question is always interrogative ("poser une question ; phrase affirmative"
+    would yield an unnatural sentence).
     """
     intention = rng.choice(INTENTIONS)
     temps = weighted_choice(rng, TENSE_WEIGHTS)
     if intention == "poser une question":
         type_phrase = "interrogative"
-        temps = weighted_choice(rng, TENSE_WEIGHTS, exclude="impératif")
-    elif temps == "impératif":
-        type_phrase = weighted_choice(rng, SENTENCE_TYPE_WEIGHTS, exclude="interrogative")
     else:
         type_phrase = weighted_choice(rng, SENTENCE_TYPE_WEIGHTS)
+    classe_cible = rng.choices(classes, weights)[0]
+    entite = None
+    if classe_cible == 4 and rng.random() < PLACE_SHARE:
+        entite = rng.choice(NAMED_PLACES)
+    elif classe_cible in (4, 5):
+        entite = rng.choice(FIRST_NAMES)
     return SentenceSpec(
         intention=intention,
-        classe_cible=rng.choices(classes, weights)[0],
+        classe_cible=classe_cible,
         temps=temps,
         type_phrase=type_phrase,
+        entite=entite,
     )
 
 
@@ -151,7 +189,7 @@ def sample_prompt_specs(nb_prompts: int, sentences_per_prompt: int, seed: int) -
         ]
         specs.append(PromptSpec(
             theme=rng.choice(THEMES),
-            lieu=rng.choice(PLACES),
+            lieu=rng.choice(PLACES) if rng.random() < PLACE_PROMPT_SHARE else None,
             locuteur=rng.choice(SPEAKERS),
             sentences=sentences,
         ))

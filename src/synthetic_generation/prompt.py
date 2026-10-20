@@ -1,4 +1,4 @@
-from seeds import STRUCTURES, PromptSpec
+from seeds import PromptSpec
 
 
 PROMPT_GENERATION = """
@@ -15,10 +15,18 @@ Règles pour chaque phrase :
 - Une seule phrase complète, de 3 à 20 mots, avec sa ponctuation finale (. ? !)
 - Vocabulaire concret, que des pictogrammes peuvent représenter
 - Respecte la consigne : intention, structure, temps et type de phrase
+- Le thème et le lieu sont un contexte : n'écris pas de phrase incohérente pour les
+  caser, une phrase peut ne citer ni l'un ni l'autre
+- Le temps indique seulement si l'action est passée, présente ou future : choisis la
+  forme la plus naturelle (passé composé ou imparfait, futur proche ou futur simple,
+  impératif ou conditionnel pour une demande)
 - Pas de personne célèbre, de marque, de sigle, de chiffre compliqué ni de caractère spécial
 - Pas de guillemets ni de discours rapporté
 - Les phrases doivent être différentes les unes des autres : varie le sujet
-  (je, tu, nous, on, vous, un prénom, un nom commun), le verbe et le début de phrase
+  (je, tu, nous, on, vous, un nom commun comme maman ou le chien), le verbe et le
+  début de phrase
+- N'utilise un prénom ou un nom de ville que si la consigne le donne, et utilise
+  exactement celui de la consigne
 - Évite les tournures toutes faites répétées ("Est-ce que je peux…", "J'aimerais…")
 - Pour les questions, varie la forme : intonation ("Tu viens ?"), "est-ce que",
   inversion ("Veux-tu du pain ?"), mot interrogatif (où, quand, qui, quoi, pourquoi,
@@ -35,16 +43,13 @@ def build_user_message(spec: PromptSpec) -> str:
     Returns:
         The user message.
     """
-    lines = [
-        f"Thème : {spec.theme}",
-        f"Lieu : {spec.lieu}",
-        f"Qui parle : {spec.locuteur}",
-        "",
-        "Consignes :",
-    ]
+    lines = [f"Thème : {spec.theme}"]
+    if spec.lieu is not None:
+        lines.append(f"Lieu : {spec.lieu}")
+    lines += [f"Qui parle : {spec.locuteur}", "", "Consignes :"]
     for i, sentence in enumerate(spec.sentences, start=1):
         lines.append(
-            f"{i}. {sentence.intention} ; {STRUCTURES[sentence.classe_cible]} ; "
+            f"{i}. {sentence.intention} ; {sentence.structure()} ; "
             f"temps : {sentence.temps} ; phrase {sentence.type_phrase}"
         )
     return "\n".join(lines)

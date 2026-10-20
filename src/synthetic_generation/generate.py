@@ -25,8 +25,12 @@ LEADING_NUMBER = re.compile(r"^\s*\d+[.)]\s*")
 
 
 def tokenize_final_punct(text: str) -> str:
-    """Separate the sentence-final punctuation: "Je veux boire." -> "Je veux boire ."."""
-    return FINAL_PUNCT.sub(r" \1", text.strip())
+    """Separate the sentence-final punctuation: "Je veux boire." -> "Je veux boire ."
+
+    The typographic apostrophe the model mixes in ("J’ai") is normalised to "'" like
+    in the other corpora, so that dedup and picto annotation see a single form.
+    """
+    return FINAL_PUNCT.sub(r" \1", text.strip().replace("’", "'"))
 
 
 def parse_sentences(text: str) -> list[str]:
