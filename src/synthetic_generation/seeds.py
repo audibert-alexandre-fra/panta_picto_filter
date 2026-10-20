@@ -48,8 +48,8 @@ INTENTIONS: list[str] = [
 
 # Targets the 1-5 complexity classes of PROMPT_CLASSIFICATION (panta_picto_filter/prompt.py):
 # je/tu/nous are not coreference, common nouns ("la mer", "maman") are not named entities.
-# Classes 4 and 5 get an imposed {entite}: left free, the model reuses the same few
-# first names (Paul, Léa) and takes "la ferme" or "la mer" for named entities.
+# Classes 4 and 5 get an imposed named place {entite}: left free, the model takes "la ferme"
+# or "la mer" for named entities. No first names: they are not wanted in the corpus.
 STRUCTURES: dict[int, str] = {
     1: "phrase simple (une seule proposition), sans pronom il/elle/le/la/ça qui renvoie à "
        "quelque chose, sans prénom ni nom de ville ou de pays",
@@ -59,32 +59,22 @@ STRUCTURES: dict[int, str] = {
        "chose ou à quelqu'un, sans prénom ni nom de ville ou de pays",
     4: "phrase contenant « {entite} », sans pronom il/elle/le/la/ça qui renvoie à quelque chose",
     5: "phrase contenant « {entite} » et un pronom (il, elle, lui, le, la, en, y…) qui renvoie "
-       "à cette personne ou à une chose de la phrase",
+       "à ce lieu ou à une chose de la phrase",
 }
-
-FIRST_NAMES: list[str] = [
-    "Adam", "Adèle", "Ahmed", "Aïcha", "Alice", "Amir", "Ana", "Anaïs", "Antoine", "Arthur",
-    "Awa", "Axel", "Baptiste", "Bastien", "Camille", "Céline", "Chloé", "Clara", "Clément",
-    "Damien", "David", "Diane", "Dylan", "Éden", "Élise", "Ella", "Emma", "Enzo", "Éric",
-    "Ethan", "Fatou", "Félix", "Florence", "Gabriel", "Gaspard", "Hélène", "Hugo", "Ibrahim",
-    "Inès", "Isabelle", "Jade", "Jeanne", "Jules", "Julie", "Juliette", "Karim", "Kenza",
-    "Laura", "Léon", "Lina", "Linda", "Lou", "Louise", "Luc", "Lucie", "Lyna", "Madeleine",
-    "Malik", "Manon", "Margaux", "Marius", "Martin", "Maya", "Mehdi", "Mila", "Moussa",
-    "Nadia", "Nathan", "Nina", "Noah", "Noé", "Nora", "Olivier", "Oscar", "Paulette",
-    "Philippe", "Rayan", "Rose", "Sacha", "Salomé", "Samuel", "Sarah", "Simon", "Sofia",
-    "Sophie", "Suzanne", "Théo", "Thomas", "Timothée", "Valentin", "Victor", "Yanis",
-    "Yasmine", "Yves", "Zoé", "grand-mère Odette", "papi Robert", "tata Nicole", "tonton Marc",
-]
 
 # Named places with an obvious pictogram, accepted by the validation PROMPT.
 NAMED_PLACES: list[str] = [
     "Paris", "Lyon", "Marseille", "Lille", "Bordeaux", "Toulouse", "Nice", "Strasbourg",
-    "Nantes", "Londres", "Rome", "Madrid", "Bruxelles", "Genève", "New York", "la France",
-    "l'Espagne", "l'Italie", "l'Allemagne", "la Belgique", "le Maroc", "l'Afrique",
-    "la Bretagne", "la Corse", "les Alpes", "la Méditerranée", "la tour Eiffel",
+    "Nantes", "Montpellier", "Rennes", "Grenoble", "Brest", "Biarritz", "Annecy", "Avignon",
+    "Londres", "Rome", "Venise", "Madrid", "Barcelone", "Bruxelles", "Genève", "Berlin",
+    "Amsterdam", "Lisbonne", "New York", "Montréal", "Dakar", "Alger", "Tunis", "Tokyo",
+    "la France", "l'Espagne", "l'Italie", "l'Allemagne", "la Belgique", "la Suisse",
+    "le Portugal", "l'Angleterre", "le Maroc", "l'Algérie", "le Sénégal", "le Canada",
+    "les États-Unis", "la Chine", "le Japon", "le Brésil", "l'Afrique", "l'Europe",
+    "la Bretagne", "la Normandie", "la Provence", "l'Alsace", "la Corse", "les Alpes",
+    "les Pyrénées", "la Méditerranée", "l'océan Atlantique", "la Seine", "la Loire",
+    "la tour Eiffel", "le mont Saint-Michel", "Disneyland",
 ]
-# Share of class-4 entities that are places rather than first names.
-PLACE_SHARE: float = 0.3
 # Share of prompts with an imposed place: an always-imposed place clashed with the
 # theme ("la voiture" + "dans le salon" -> "Hugo, respire plus lentement dans la voiture").
 PLACE_PROMPT_SHARE: float = 0.5
@@ -152,11 +142,7 @@ def sample_sentence_spec(rng: random.Random, classes: list[int], weights: list[f
     else:
         type_phrase = weighted_choice(rng, SENTENCE_TYPE_WEIGHTS)
     classe_cible = rng.choices(classes, weights)[0]
-    entite = None
-    if classe_cible == 4 and rng.random() < PLACE_SHARE:
-        entite = rng.choice(NAMED_PLACES)
-    elif classe_cible in (4, 5):
-        entite = rng.choice(FIRST_NAMES)
+    entite = rng.choice(NAMED_PLACES) if classe_cible in (4, 5) else None
     return SentenceSpec(
         intention=intention,
         classe_cible=classe_cible,
