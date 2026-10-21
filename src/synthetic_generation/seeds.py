@@ -42,6 +42,41 @@ THEMES: list[str] = [
     "la route et les feux", "les rendez-vous", "le calendrier et les jours", "le week-end",
     "le matin et le réveil", "le soir et le coucher", "la sieste", "les cauchemars et les rêves",
     "les cadeaux", "les invités", "le mariage", "les photos",
+    # Concrete themes: they lose far less to dedup (~85% kept) than vague ones (~65%).
+    "les pâtes et le riz", "la soupe", "la pizza", "les sandwichs",
+    "le fromage et les yaourts", "les œufs", "la viande et le poisson", "les bonbons et le chocolat",
+    "les glaces", "le café et le thé", "l'eau et la soif", "les céréales",
+    "la table et les couverts", "le four et le micro-ondes", "le réfrigérateur", "la poubelle et le tri",
+    "le lit et les draps", "les jouets en peluche", "le doudou", "les chaussettes et les pyjamas",
+    "le manteau et l'écharpe", "le parapluie", "les bottes", "les sacs et les cartables",
+    "les crayons et les cahiers", "les ciseaux et la colle", "le tableau et la craie", "la maîtresse et le maître",
+    "les camarades de classe", "le bus scolaire", "la sortie scolaire", "l'ordinateur",
+    "la tablette", "la radio", "les histoires du soir", "les comptines",
+    "le ballon", "la balançoire et le toboggan", "le bac à sable", "les billes",
+    "la trottinette", "les rollers", "le tennis", "le basket",
+    "la gymnastique", "la randonnée", "la pêche", "le bateau",
+    "le métro", "le tramway", "le parking", "la station-service",
+    "le chien", "le chat", "le lapin", "les poules et les œufs",
+    "les vaches et le lait", "les moutons", "les canards", "les papillons",
+    "les fleurs", "les arbres", "l'arrosage des plantes", "le potager",
+    "le vent", "le brouillard", "l'arc-en-ciel", "la lune et les étoiles",
+    "la nuit", "les bougies et l'anniversaire", "le gâteau d'anniversaire", "les ballons de baudruche",
+    "Pâques et les œufs en chocolat", "Halloween", "le carnaval", "le feu d'artifice",
+    "le mal de ventre", "le mal de dents", "la toux", "les vaccins et les piqûres",
+    "le pansement", "la prise de sang", "l'infirmière", "l'ambulance",
+    "les béquilles", "l'appareil auditif", "les repas mixés", "l'aide pour manger",
+    "l'aide pour s'habiller", "le lavage des mains", "se brosser les cheveux", "les ongles",
+    "la crème solaire", "le chapeau et le soleil", "la climatisation et le chauffage", "la fenêtre et les volets",
+    "l'ascenseur et les escaliers", "la sonnette et l'interphone", "la boîte aux lettres", "le supermarché et le caddie",
+    "la caisse et le paiement", "le boucher", "le fleuriste", "la librairie",
+    "le magasin de jouets", "le marchand de glaces", "la fête foraine", "le manège",
+    "le musée", "le château", "l'aquarium et les requins", "la ferme pédagogique",
+    "le centre de loisirs", "la colonie de vacances", "la valise", "l'hôtel",
+    "la tente et le sac de couchage", "le feu de camp", "la cabane", "la luge et le ski",
+    "le bonhomme de neige", "les châteaux de sable", "les coquillages", "le maillot de bain",
+    "attendre son tour", "partager", "demander de l'aide", "dire non",
+    "être fatigué", "avoir faim", "avoir froid", "avoir chaud",
+    "être pressé", "être en retard", "se perdre", "faire une pause",
 ]
 
 PLACES: list[str] = [
@@ -66,10 +101,10 @@ INTENTIONS: list[str] = [
     "remercier ou s'excuser", "faire un projet", "se plaindre",
 ]
 
-# Targets the 1-5 complexity classes of PROMPT_CLASSIFICATION (panta_picto_filter/prompt.py):
+# Targets the complexity classes 1-3 of PROMPT_CLASSIFICATION (panta_picto_filter/prompt.py):
 # je/tu/nous are not coreference, common nouns ("la mer", "maman") are not named entities.
-# Classes 4 and 5 get an imposed named place {entite}: left free, the model takes "la ferme"
-# or "la mer" for named entities. No first names: they are not wanted in the corpus.
+# No classes 4/5 (named entities): imposed places gave absurd sentences ("Le Sénégal me
+# brûle les pieds"), and coreference is kept rare. No first names: not wanted in the corpus.
 STRUCTURES: dict[int, str] = {
     1: "phrase simple (une seule proposition), sans pronom il/elle/le/la/ça qui renvoie à "
        "quelque chose, sans prénom ni nom de ville ou de pays",
@@ -77,30 +112,13 @@ STRUCTURES: dict[int, str] = {
        "qui renvoie à quelque chose, sans prénom ni nom de ville ou de pays",
     3: "phrase contenant un pronom (il, elle, le, la, lui, en, y, ça…) qui renvoie à quelque "
        "chose ou à quelqu'un, sans prénom ni nom de ville ou de pays",
-    4: "phrase contenant « {entite} », sans pronom il/elle/le/la/ça qui renvoie à quelque chose",
-    5: "phrase contenant « {entite} » et un pronom (il, elle, lui, le, la, en, y…) qui renvoie "
-       "à ce lieu ou à une chose de la phrase",
 }
 
-# Named places with an obvious pictogram, accepted by the validation PROMPT.
-NAMED_PLACES: list[str] = [
-    "Paris", "Lyon", "Marseille", "Lille", "Bordeaux", "Toulouse", "Nice", "Strasbourg",
-    "Nantes", "Montpellier", "Rennes", "Grenoble", "Brest", "Biarritz", "Annecy", "Avignon",
-    "Londres", "Rome", "Venise", "Madrid", "Barcelone", "Bruxelles", "Genève", "Berlin",
-    "Amsterdam", "Lisbonne", "New York", "Montréal", "Dakar", "Alger", "Tunis", "Tokyo",
-    "la France", "l'Espagne", "l'Italie", "l'Allemagne", "la Belgique", "la Suisse",
-    "le Portugal", "l'Angleterre", "le Maroc", "l'Algérie", "le Sénégal", "le Canada",
-    "les États-Unis", "la Chine", "le Japon", "le Brésil", "l'Afrique", "l'Europe",
-    "la Bretagne", "la Normandie", "la Provence", "l'Alsace", "la Corse", "les Alpes",
-    "les Pyrénées", "la Méditerranée", "l'océan Atlantique", "la Seine", "la Loire",
-    "la tour Eiffel", "le mont Saint-Michel", "Disneyland",
-]
 # Share of prompts with an imposed place: an always-imposed place clashed with the
 # theme ("la voiture" + "dans le salon" -> "Hugo, respire plus lentement dans la voiture").
 PLACE_PROMPT_SHARE: float = 0.5
-# Real corpora are dominated by class 5 (downsampled in processing_before_llm.py):
-# the synthetic set favours the simple classes.
-STRUCTURE_WEIGHTS: dict[int, float] = {1: 0.30, 2: 0.25, 3: 0.20, 4: 0.15, 5: 0.10}
+# Coreference is not wanted in the corpus: class 3 stays marginal.
+STRUCTURE_WEIGHTS: dict[int, float] = {1: 0.45, 2: 0.45, 3: 0.10}
 
 # Only the time of the action: imposing a precise tense ("imparfait", "futur simple")
 # produced forced sentences ("Serais-tu allé pêcher hier ?"). The model picks the
@@ -122,11 +140,10 @@ class SentenceSpec:
     classe_cible: int
     temps: str
     type_phrase: str
-    entite: str | None = None
 
     def structure(self) -> str:
-        """Structure constraint of the target class, with its imposed entity."""
-        return STRUCTURES[self.classe_cible].format(entite=self.entite)
+        """Structure constraint of the target class."""
+        return STRUCTURES[self.classe_cible]
 
 
 @dataclass
@@ -162,13 +179,11 @@ def sample_sentence_spec(rng: random.Random, classes: list[int], weights: list[f
     else:
         type_phrase = weighted_choice(rng, SENTENCE_TYPE_WEIGHTS)
     classe_cible = rng.choices(classes, weights)[0]
-    entite = rng.choice(NAMED_PLACES) if classe_cible in (4, 5) else None
     return SentenceSpec(
         intention=intention,
         classe_cible=classe_cible,
         temps=temps,
         type_phrase=type_phrase,
-        entite=entite,
     )
 
 

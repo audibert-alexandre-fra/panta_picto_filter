@@ -27,8 +27,8 @@ Règles pour chaque phrase :
   début de phrase
 - N'utilise jamais de prénom ni de nom de personne : désigne les gens par un nom commun
   (maman, mon frère, la maîtresse, le médecin, un ami)
-- N'utilise un nom de ville, de pays ou de lieu que si la consigne le donne, et utilise
-  exactement celui de la consigne
+- N'utilise jamais de nom de ville, de pays ou de lieu précis (Paris, la France…) :
+  dis la ville, la mer, la montagne, un pays lointain
 - Évite les tournures toutes faites répétées ("Est-ce que je peux…", "J'aimerais…")
 - Pour les questions, varie la forme : intonation ("Tu viens ?"), "est-ce que",
   inversion ("Veux-tu du pain ?"), mot interrogatif (où, quand, qui, quoi, pourquoi,
