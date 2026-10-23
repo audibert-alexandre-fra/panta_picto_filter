@@ -1,4 +1,4 @@
-from prompt import PROMPT, PROMPT_CLASSIFICATION, PROMPT_FILTER_TEXT_PICTO
+from prompt import PROMPT, PROMPT_CLASSIFICATION, PROMPT_FILTER_TEXT_PICTO, PROMPT_FILTER_TEXT_PICTO_STRICT
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 
@@ -6,8 +6,8 @@ from transformers import AutoTokenizer
 class LlmAsJudge:
     """Wrapper around a vLLM model used as an LLM-as-judge.
 
-    Supports three tasks: ``"filter_text"``, ``"classification"``
-    and ``"filter_text_picto"``.
+    Supports four tasks: ``"filter_text"``, ``"classification"``,
+    ``"filter_text_picto"`` and ``"filter_text_picto_strict"``.
 
     Args:
         name_model: HuggingFace model identifier.
@@ -65,6 +65,8 @@ class LlmAsJudge:
                 system_prompt = PROMPT_CLASSIFICATION
             case "filter_text_picto":
                 system_prompt = PROMPT_FILTER_TEXT_PICTO
+            case "filter_text_picto_strict":
+                system_prompt = PROMPT_FILTER_TEXT_PICTO_STRICT
             case _:
                 raise ValueError(f"Tâche inconnue : {self.task}")
 

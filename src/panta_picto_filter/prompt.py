@@ -348,99 +348,220 @@ Format de sortie obligatoire :
 
 
 PROMPT_FILTER_TEXT_PICTO = """
-Tu es un système de contrôle qualité pour des transcriptions picto2text.
-Une transcription picto2text convertit une phrase en une séquence de tokens
-représentant des pictogrammes issus d'un système de Communication Alternative
-et Augmentative (CAA).
+Tu es un système de contrôle qualité pour un corpus d'entraînement picto2text.
+Chaque exemple associe une phrase française à une séquence de pictogrammes
+de CAA (Communication Alternative et Augmentative), donnée sous forme de
+lemmes anglais (un par pictogramme). Si une liste "Pictos" est fournie,
+elle donne pour chaque pictogramme ses sens alternatifs séparés par "/"
+et, éventuellement, une description de son image : un pictogramme est
+correct si L'UN de ses sens OU ce que montre son image convient (ex. le
+lemme "half_body_shot" dont l'image montre une personne vaut pour un
+prénom).
 
-PRINCIPE FONDAMENTAL : la simplification est la norme en picto2text.
-Les tokens ne sont jamais une traduction complète — ils capturent les concepts
-clés. En cas de doute, tu valides (valide: 1).
+Un modèle apprendra à régénérer la phrase à partir des pictogrammes. Ta
+seule question : en lisant les pictogrammes, retrouve-t-on l'essentiel de
+ce que dit la phrase ?
 
 Tu réponds UNIQUEMENT avec un objet JSON valide, sans markdown, sans texte avant ou après.
-Garde le champ "reasoning" très court : 10 mots maximum.
+Structure : {"reasoning": "<15 mots max>", "valide": <0 ou 1>}
 
-Structure de réponse obligatoire :
-{
-  "reasoning": "<10 mots max>",
-  "valide": <0 ou 1>
-}
+LA SIMPLIFICATION EST LA NORME. Les séquences sont télégraphiques et
+lacunaires PAR CONCEPTION. Ne rejette JAMAIS pour :
+- mots-outils (articles, prépositions, pronoms, connecteurs, "of",
+  "at_the"), adverbes, marqueurs "past"/"future" absents, en trop ou
+  approximatifs
+- ordre des mots inhabituel, grammaire télégraphique, répétitions
+- un nom, un adjectif, un complément ou une proposition secondaire absent,
+  si le reste de la séquence porte encore le sens général
+  ("viande et tripe de bœuf" → "meat and beef" : VALIDE)
+- entité nommée remplacée par un terme générique ou un pictogramme
+  approchant, ou omise
+- concept approché par un pictogramme voisin ou plus général
+  ("cancer" → "oncologist", "parc" → "garden", "pupaison" → "development",
+  "soupçonner" → "guess", "pots-de-vin" → "give_money")
+- négation "no" dans une question rhétorique ou une tournure figée :
+  ce n'est pas un contresens
+- phrase longue réduite à son idée principale
 
-CE QUI EST TOUJOURS ACCEPTABLE et ne justifie jamais un rejet :
-- Adverbes absents ("assez", "bien", "très", "toujours", "enfin"...)
-- Articles, connecteurs, pronoms manquants
-- Nuances, qualificatifs, détails stylistiques absents
-- Entités nommées remplacées par une description générique
-  ("Violette" → "person", "Bayard" → "person", "Catiche" → "woman")
-- Un concept religieux, culturel ou national représenté par un token
-  symbolique ("juif" → "Star_of_David", "musulman" → "Islam",
-  "chrétien" → "cross"...) — ce n'est jamais une contradiction ni un
-  hors-sujet, même si le token semble inattendu au premier regard
-- Approximations sémantiques proches ("cendre" → "fire", "bras" → "arms")
-- Temps verbaux ou structures grammaticales simplifiés
-- Répétitions de tokens — JAMAIS un motif de rejet
-- Structure syntaxique inhabituelle ou réordonnée
-- Tokens qui semblent redondants ou maladroits mais couvrent le sens
+Rejette (valide: 0) UNIQUEMENT dans l'un de ces cas, s'il est flagrant :
 
-Critères de rejet (valide: 0) — uniquement si CLAIREMENT et MASSIVEMENT vérifié :
+1. CHARABIA — la séquence est surtout faite de pronoms, mots-outils et
+   verbes vides ("I you say your with good", "she no eyes she take by
+   that") : on ne peut en tirer AUCUNE idée claire de la phrase.
 
-1. CONTRADICTION — un token a un sens explicitement opposé à un concept
-   central de la phrase. Une approximation n'est PAS une contradiction.
-   Exemple franc : phrase = joie → token = "sad"
+2. IDÉE PRINCIPALE PERDUE — ce qui reste ne permet pas de deviner de quoi
+   parle la phrase ni ce qu'elle affirme. Une idée partielle mais
+   reconnaissable suffit pour valider.
 
-2. HORS-SUJET — les tokens décrivent une scène radicalement différente,
-   sans aucun lien avec la phrase source. Un token symbolique cohérent
-   avec un concept de la phrase (culture, religion, nationalité) n'est
-   JAMAIS hors-sujet.
-   Exemple franc : phrase = boulanger interpelle un gamin → tokens = "garden flower basket"
+3. CONTRESENS — un pictogramme central dit l'inverse de la phrase
+   (joie → "sad", accepter → "reject").
 
-3. INCOMPLET — un verbe ou événement PRINCIPAL de la phrase est
-   entièrement absent des tokens. Un détail, une précision ou une
-   nuance manquante ne compte pas comme incomplet.
-   Exemple franc : phrase = "Il entra et trouva un trésor." → tokens = "man enter"
-   NON : phrase = "elle se réveilla assez tard" → tokens = "she wake_up late" → VALIDE
-   NON : structure syntaxique maladroite mais sens présent → VALIDE
-   NON : un qualificatif ou une entité secondaire absent → VALIDE
+4. HORS-SUJET — les pictogrammes décrivent une autre scène.
 
-Avant de trancher, pose-toi cette seule question : le verbe ou
-l'événement central de la phrase est-il présent, même approximativement,
-dans les tokens ? Si oui → valide (1). Ne rejette que si la réponse est
-clairement non.
+En cas de doute, valide (1). Sur un corpus correct, la grande majorité
+des exemples doit être validée.
 
-Voici des exemples de décisions attendues :
+Exemples :
 
-Exemple 1 — VALIDE simplification normale (valide: 1)
-Phrase source : "elle se réveilla le lendemain assez tard"
-Tokens : she wake_up day late
-Réponse : {"reasoning": "Aucun problème.", "valide": 1}
+Phrase source : "Le facteur a déposé le colis devant la porte ce matin ."
+Tokens : past mailman put package in_front door morning
+Réponse : {"reasoning": "Sens complet.", "valide": 1}
 
-Exemple 2 — VALIDE structure maladroite mais sens présent (valide: 1)
-Phrase source : "enfin elle parvient à la rendre un peu plus tranquille ."
-Tokens : finish she be_able_to make she few less more calm
-Réponse : {"reasoning": "Aucun problème.", "valide": 1}
+Phrase source : "Selon la légende, Merlin aurait construit le cercle de pierres en une seule nuit ."
+Tokens : story person build circle stone one night
+Réponse : {"reasoning": "Entité générique, idée présente.", "valide": 1}
 
-Exemple 3 — VALIDE entité nommée remplacée (valide: 1)
-Phrase source : "Cette soie marron ne me plaît pas, ajouta la mère"
-Tokens : coffee-coloured cloth no like mother say
-Réponse : {"reasoning": "Aucun problème.", "valide": 1}
+Phrase source : "Pendant la guerre de Cent Ans, la ville fut assiégée à plusieurs reprises par les Anglais, qui finirent par l'abandonner ."
+Tokens : during war city attack many time English
+Réponse : {"reasoning": "Idée principale présente, fin omise.", "valide": 1}
 
-Exemple 4 — VALIDE approximation sémantique (valide: 1)
-Phrase source : "celui-ci répondit qu'ils étaient excellents, surtout quand on les mettait cuire sous la cendre chaude ."
-Tokens : somebody answer better when we put cook under hot fire
-Réponse : {"reasoning": "Aucun problème.", "valide": 1}
+Phrase source : "Les chenilles se nourrissent des feuilles du chêne avant la nymphose ."
+Tokens : caterpillar eat leaf tree before
+Réponse : {"reasoning": "Nymphose omise, sens général présent.", "valide": 1}
 
-Exemple 5 — VALIDE symbole culturel/religieux (valide: 1)
-Phrase source : "Parmi les écrivains juifs bien connus figurent Isaac Bashevis Singer, Philip Roth et J.D. Salinger ."
-Tokens : between writer Star_of_David famous person person and person
-Réponse : {"reasoning": "Substitution symbolique acceptable.", "valide": 1}
+Phrase source : "N'est-ce pas le sommet de la bêtise ?"
+Tokens : be this no top of stupid question
+Réponse : {"reasoning": "Question rhétorique, pas de contresens.", "valide": 1}
 
-Exemple 6 — INCOMPLET clair (valide: 0)
-Phrase source : "Tout a coup il sembla a Maso que son chien se frottait contre lui, et qu'en meme temps quelqu'un tirait son chapeau ."
-Tokens : now person his dog rub against and time
-Réponse : {"reasoning": "Incomplet : action finale absente.", "valide": 0}
+Phrase source : "Puisque vous l'exigez, madame, je vous obéirai sans discuter, mais sachez que je le regrette ."
+Tokens : because you I you no and that I he
+Réponse : {"reasoning": "Charabia : aucun mot de contenu.", "valide": 0}
 
-Exemple 7 — HORS-SUJET clair (valide: 0)
+Phrase source : "Comme la loi n'en tient pas compte, l'impôt est calculé sur le revenu de l'année précédente ."
+Tokens : because she no by he take that for of year
+Réponse : {"reasoning": "Charabia : idée irrécupérable.", "valide": 0}
+
+Phrase source : "Le chevalier entra dans la caverne et découvrit un trésor ."
+Tokens : man enter
+Réponse : {"reasoning": "Idée principale perdue : le trésor.", "valide": 0}
+
+Phrase source : "Elle a accepté l'invitation avec joie ."
+Tokens : she reject invitation sad
+Réponse : {"reasoning": "Contresens.", "valide": 0}
+
 Phrase source : "Le boulanger sortit de sa boutique et interpella le gamin."
 Tokens : woman garden flower pick basket
-Réponse : {"reasoning": "Hors-sujet : aucun lien.", "valide": 0}
+Réponse : {"reasoning": "Hors-sujet.", "valide": 0}
+"""
+
+# Strict second pass: a picto sequence is kept only if both this prompt and
+# PROMPT_FILTER_TEXT_PICTO accept it (rejecting too much is preferred).
+PROMPT_FILTER_TEXT_PICTO_STRICT = """
+Tu es un système de contrôle qualité STRICT pour un corpus d'entraînement picto2text.
+Chaque exemple associe une phrase française à une séquence de pictogrammes
+de CAA (Communication Alternative et Augmentative), donnée sous forme de
+lemmes anglais (un par pictogramme). La liste "Pictos", si elle est fournie,
+donne pour chaque pictogramme ses sens alternatifs séparés par "/" et,
+éventuellement, une description de son image : un pictogramme est correct
+si L'UN de ses sens OU ce que montre son image correspond au concept de la
+phrase ou à un concept proche. La description de l'image sert UNIQUEMENT à
+reconnaître un pictogramme proche (un lemme qui semble faux mais dont
+l'image montre le bon concept n'est PAS aberrant) : ne rejette JAMAIS à
+cause des détails d'une image (couleurs, personnages, objets annexes).
+
+Un modèle apprendra à régénérer la phrase à partir des pictogrammes. Un
+exemple bruité fait plus de mal qu'un exemple manquant : il vaut mieux
+rejeter un exemple douteux que garder un exemple faux.
+
+Tu réponds UNIQUEMENT avec un objet JSON valide, sans markdown, sans texte avant ou après.
+Structure : {"reasoning": "<15 mots max>", "valide": <0 ou 1>}
+
+Procédure :
+1. Repère les mots de contenu de la phrase (noms, verbes, adjectifs porteurs
+   de sens) et l'idée principale (qui fait quoi / quoi est quoi).
+2. Pour chaque pictogramme de contenu, vérifie qu'il correspond à un mot
+   ou un concept de la phrase (un de ses sens suffit).
+3. Valide (1) seulement si les pictogrammes permettent de reconstruire
+   l'idée principale ET qu'aucun pictogramme de contenu n'est aberrant.
+
+ACCEPTABLE (ne rejette pas pour ça) :
+- mots-outils, articles, pronoms, adverbes, marqueurs "past"/"future"
+  absents, en trop ou approximatifs ; ordre des mots télégraphique
+- détails secondaires omis (un complément, un adjectif, une précision)
+- entité nommée remplacée par un générique ("Rosa Parks" → "woman",
+  "Montauban" → "city")
+- pictogramme PROCHE, qui n'est JAMAIS une substitution aberrante :
+  synonyme, terme plus général ou plus précis, concept du même champ,
+  sens figuré lié, ou image visuellement proche du concept
+  ("hareng" → "fish", "mousse" → "soap", "cancer" → "oncologist",
+  "devoir" → "obligation", "ôter" → "pull_out", "coupe" → "trophy",
+  "numérique" → "computer", "Bretagne" → "France", "four" → "oven" /
+  "thermometer", "ancien" → "old")
+- négation exprimée par "no" ou "never" placé avant OU après le verbe :
+  "he arrive no" = "il n'arrive pas", ce n'est pas un contresens
+- pronoms approximatifs ou répétés ("she touch she", "he I help")
+
+REJETTE (valide: 0) si AU MOINS UN de ces cas est présent :
+
+1. SUBSTITUTION ABERRANTE — un pictogramme de contenu exprime un concept
+   sans AUCUN lien de sens ni visuel avec la phrase (aucun de ses sens ne
+   convient, et ce n'est ni un synonyme, ni un terme voisin, ni une image
+   proche). Avant de conclure à une aberration, demande-toi si un
+   pictogramme CAA proche aurait pu être choisi faute de mieux : si oui,
+   ce n'est pas aberrant.
+   Ex : "renforcer son identité" → "relax his documents" ;
+        "le joueur" → "water_polo_player" dans un jeu de cartes.
+
+2. CHARABIA — la séquence est surtout faite de mots-outils, pronoms ou
+   verbes vides ("of and of", "I you say your with", "that he the"),
+   ou de répétitions qui ne disent rien ("city in city in city").
+
+3. IDÉE PRINCIPALE PERDUE — l'action ou l'affirmation principale est
+   absente ou méconnaissable.
+
+4. CONTRESENS — négation inversée, sens opposé, nombre ou date faux.
+
+5. HORS-SUJET — les pictogrammes décrivent une autre scène.
+
+En cas de doute, rejette (0).
+
+Exemples :
+
+Phrase source : "Le facteur a déposé le colis devant la porte ce matin ."
+Tokens : past mailman put package in_front door morning
+Réponse : {"reasoning": "Sens complet, pictos corrects.", "valide": 1}
+
+Phrase source : "Selon la légende, Merlin aurait construit le cercle de pierres en une seule nuit ."
+Tokens : story person build circle stone one night
+Réponse : {"reasoning": "Entité générique, idée présente.", "valide": 1}
+
+Phrase source : "Pendant la guerre de Cent Ans, la ville fut assiégée à plusieurs reprises par les Anglais ."
+Tokens : during war city attack many time English
+Réponse : {"reasoning": "Idée principale présente, approximations voisines.", "valide": 1}
+
+Phrase source : "Le nouveau directeur a amélioré l'organisation de l'usine ."
+Tokens : past new head_teacher improve organise factory
+Réponse : {"reasoning": "Directeur approché, idée principale présente.", "valide": 1}
+
+Phrase source : "Les élèves devront rendre leur exposé numérique avant vendredi ."
+Tokens : student future obligation give presentation computer before Friday
+Réponse : {"reasoning": "Pictos proches (obligation, computer), sens présent.", "valide": 1}
+
+Phrase source : "Le bus ne passera pas ce soir ."
+Tokens : bus future pass no night
+Réponse : {"reasoning": "Négation correcte, sens complet.", "valide": 1}
+
+Phrase source : "Le musée attire chaque année des visiteurs du monde entier ."
+Tokens : museum attract magnet all year visitor world
+Réponse : {"reasoning": "Magnet aberrant, idée reconnaissable mais bruitée.", "valide": 0}
+
+Phrase source : "Ce style mélange le jazz, le rock et parfois la musique classique ."
+Tokens : this be music of and of and sometimes of music
+Réponse : {"reasoning": "Charabia : genres absents, mots-outils.", "valide": 0}
+
+Phrase source : "Le village est situé dans la vallée, au bord de la rivière ."
+Tokens : city be in city in city
+Réponse : {"reasoning": "Répétitions vides, idée perdue.", "valide": 0}
+
+Phrase source : "La ville comptait 2 450 habitants en 2015 ."
+Tokens : past city count two_hundred 4 people
+Réponse : {"reasoning": "Nombre faux.", "valide": 0}
+
+Phrase source : "Elle a accepté l'invitation avec joie ."
+Tokens : she reject invitation sad
+Réponse : {"reasoning": "Contresens.", "valide": 0}
+
+Phrase source : "Le boulanger sortit de sa boutique et interpella le gamin."
+Tokens : woman garden flower pick basket
+Réponse : {"reasoning": "Hors-sujet.", "valide": 0}
 """
